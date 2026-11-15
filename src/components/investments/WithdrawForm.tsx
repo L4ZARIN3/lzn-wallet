@@ -9,11 +9,9 @@ import {
     BaseError,
 } from 'viem';
 import {
-    useChainId,
     usePublicClient,
     useReadContract,
     useWaitForTransactionReceipt,
-    useWriteContract,
 } from 'wagmi';
 import { CheckCircle2, ExternalLink, Loader2, XCircle } from 'lucide-react';
 
@@ -34,7 +32,6 @@ type WithdrawFormProps = {
     accountIndex?: number;
     userAddress: Address;
     sharesBalance: bigint | undefined;
-    isExternalWallet?: boolean;
     onSuccess: () => void;
 };
 
@@ -58,7 +55,6 @@ export function WithdrawForm({
     accountIndex,
     userAddress,
     sharesBalance,
-    isExternalWallet = false,
     onSuccess,
 }: WithdrawFormProps) {
     const [amountStr, setAmountStr] = useState('');
@@ -69,15 +65,12 @@ export function WithdrawForm({
     const [isSigning, setIsSigning] = useState(false);
     const [txHash, setTxHash] = useState<Hash | undefined>(undefined);
 
-    const { writeContractAsync } = useWriteContract();
-
     // Passo atual: 'idle' | 'approving' | 'redeeming'
     const [step, setStep] = useState<'idle' | 'approving' | 'redeeming'>('idle');
 
-    const wagmiChainId = useChainId();
-    // Carteira local (keystore) opera na cadeia ativa do app (definida via .env);
-    // carteira externa (MetaMask/Rabby) opera na cadeia conectada no conector.
-    const chainId = isExternalWallet ? wagmiChainId : activeChain.id;
+    // Carteira exclusivamente local (keystore): a rede é sempre a cadeia
+    // ativa do app, definida via .env. Sem suporte a carteiras externas.
+    const chainId = activeChain.id;
     const investConfig = INVEST[chainId];
     const isSupported = Boolean(investConfig);
     const currentChain = supportedChains.find((c) => c.id === chainId) || activeChain;
@@ -224,36 +217,27 @@ export function WithdrawForm({
                 throw new Error('Cliente RPC da rede não disponível.');
             }
 
+            if (!wallet || accountIndex === undefined || !password) {
+                throw new Error('Nenhuma carteira disponível para autorizar a operação.');
+            }
+
             // Etapa 1 (somente se necessário): approve exato, nunca ilimitado
             if (currentAllowance < parsedShares) {
                 setStep('approving');
 
-                let approveHash: Hash;
-                if (isExternalWallet) {
-                    approveHash = await writeContractAsync({
-                        address: investConfig.vaultAddress,
-                        abi: sdaiVaultAbi,
-                        functionName: 'approve',
-                        args: [investConfig.adapterAddress, parsedShares],
-                        chainId,
-                    });
-                } else if (wallet && accountIndex !== undefined && password) {
-                    const account = await unlockAccount(wallet, password, accountIndex);
-                    const walletClient = createWalletClient({
-                        account,
-                        chain: currentChain,
-                        transport: http(currentChain.rpcUrls.default.http[0]),
-                    });
+                const approveAccount = await unlockAccount(wallet, password, accountIndex);
+                const approveClient = createWalletClient({
+                    account: approveAccount,
+                    chain: currentChain,
+                    transport: http(currentChain.rpcUrls.default.http[0]),
+                });
 
-                    approveHash = await walletClient.writeContract({
-                        address: investConfig.vaultAddress,
-                        abi: sdaiVaultAbi,
-                        functionName: 'approve',
-                        args: [investConfig.adapterAddress, parsedShares],
-                    });
-                } else {
-                    throw new Error('Nenhuma carteira disponível para autorizar a operação.');
-                }
+                const approveHash = await approveClient.writeContract({
+                    address: investConfig.vaultAddress,
+                    abi: sdaiVaultAbi,
+                    functionName: 'approve',
+                    args: [investConfig.adapterAddress, parsedShares],
+                });
 
                 // Aguarda a aprovação entrar na cadeia antes de resgatar
                 await publicClient.waitForTransactionReceipt({
@@ -267,32 +251,19 @@ export function WithdrawForm({
             // Etapa 2: resgate das cotas (redeemXDAI)
             setStep('redeeming');
 
-            let redeemHash: Hash;
-            if (isExternalWallet) {
-                redeemHash = await writeContractAsync({
-                    address: investConfig.adapterAddress,
-                    abi: savingsXDaiAdapterAbi,
-                    functionName: 'redeemXDAI',
-                    args: [parsedShares, userAddress],
-                    chainId,
-                });
-            } else if (wallet && accountIndex !== undefined && password) {
-                const account = await unlockAccount(wallet, password, accountIndex);
-                const walletClient = createWalletClient({
-                    account,
-                    chain: currentChain,
-                    transport: http(currentChain.rpcUrls.default.http[0]),
-                });
+            const redeemAccount = await unlockAccount(wallet, password, accountIndex);
+            const redeemClient = createWalletClient({
+                account: redeemAccount,
+                chain: currentChain,
+                transport: http(currentChain.rpcUrls.default.http[0]),
+            });
 
-                redeemHash = await walletClient.writeContract({
-                    address: investConfig.adapterAddress,
-                    abi: savingsXDaiAdapterAbi,
-                    functionName: 'redeemXDAI',
-                    args: [parsedShares, userAddress],
-                });
-            } else {
-                throw new Error('Nenhuma carteira disponível para autorizar a operação.');
-            }
+            const redeemHash = await redeemClient.writeContract({
+                address: investConfig.adapterAddress,
+                abi: savingsXDaiAdapterAbi,
+                functionName: 'redeemXDAI',
+                args: [parsedShares, userAddress],
+            });
 
             // A confirmação final é acompanhada pelo useWaitForTransactionReceipt
             setTxHash(redeemHash);
@@ -521,7 +492,7 @@ export function WithdrawForm({
                         ? 'A operação executa em sequência: (1) aprovação pontual do valor exato e (2) resgate das cotas. Nenhuma permissão ilimitada é concedida.'
                         : undefined
                 }
-                requiresPassword={!isExternalWallet && Boolean(wallet)}
+                requiresPassword={Boolean(wallet)}
             />
         </div>
     );

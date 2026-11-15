@@ -62,13 +62,16 @@ export function WalletHeader({
                     >
                         Carteira
                     </Link>
-                    <Link
-                        href="/investments"
-                        aria-current={location.startsWith('/invest') ? 'page' : undefined}
-                        className={navLinkClass(location.startsWith('/invest'))}
-                    >
-                        Investimentos
-                    </Link>
+                    {/* Sem carteira local habilitada não existe aba de investimentos */}
+                    {address && (
+                        <Link
+                            href="/investments"
+                            aria-current={location.startsWith('/invest') ? 'page' : undefined}
+                            className={navLinkClass(location.startsWith('/invest'))}
+                        >
+                            Investimentos
+                        </Link>
+                    )}
                 </nav>
 
                 {/* Ações à direita */}

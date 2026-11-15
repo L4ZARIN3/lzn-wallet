@@ -4,7 +4,6 @@ import {
     gnosis as defaultGnosis,
     gnosisChiado as defaultChiado,
 } from 'wagmi/chains';
-import { injected } from 'wagmi/connectors';
 
 import chainsConfigJson from '@/config/chains.json';
 
@@ -139,18 +138,6 @@ export const activeChain: Chain = CHAIN_BY_KEY[resolveActiveChainKey()];
 /** Cadeias atendidas pelo app. */
 export const supportedChains = [gnosis, gnosisFork, chiado] as const;
 
-if (typeof window !== 'undefined') {
-    if (typeof (window as any).addEventListener !== 'function') {
-        (window as any).addEventListener = () => {};
-    }
-    if (typeof (window as any).removeEventListener !== 'function') {
-        (window as any).removeEventListener = () => {};
-    }
-    if (typeof (window as any).dispatchEvent !== 'function') {
-        (window as any).dispatchEvent = () => false;
-    }
-}
-
 /** Transportes HTTP direcionados aos RPCs descritos no JSON central. */
 const transports = {
     [gnosis.id]: http(gnosis.rpcUrls.default.http[0]),
@@ -159,12 +146,15 @@ const transports = {
 };
 
 /**
- * Configuração wagmi: transportes HTTP direcionados aos RPCs configurados,
- * suporte a carteiras injetadas (MetaMask, Rabby) e leitura para self-custodial.
+ * Configuração wagmi: apenas leitura on-chain (sem conectores). Somos uma
+ * carteira self-custodial — as transações são assinadas exclusivamente pelo
+ * keystore local; não há suporte a carteiras externas (MetaMask/Rabby).
  */
 export const wagmiConfig = createConfig({
     chains: supportedChains,
-    connectors: [injected()],
     transports,
+    // Sem conectores não há o que descobrir: desativa a detecção de
+    // carteiras injetadas (mipd) por completo.
+    multiInjectedProviderDiscovery: false,
     ssr: false,
 });

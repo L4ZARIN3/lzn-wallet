@@ -139,7 +139,7 @@ export default function Home() {
                 onOpenAccounts={() => setAccountsOpen(true)}
             />
 
-            <main className="mx-auto max-w-5xl px-5 py-12 md:px-10">
+            <main className="fade-in-page mx-auto max-w-5xl px-5 py-12 md:px-10">
                 {ready && !wallet && (
                     <EmptyWallet chainName={activeChain.name} />
                 )}

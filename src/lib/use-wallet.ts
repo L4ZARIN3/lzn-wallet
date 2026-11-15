@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { Address } from 'viem';
 
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/lib/keystore';
 
 export type WalletController = {
-    /** `false` até a leitura do dispositivo terminar (evita mismatch no SSR). */
+    /** Sempre `true` no cliente: o keystore é lido de forma síncrona no primeiro render. */
     ready: boolean;
     wallet: StoredWallet | null;
     accounts: Address[];
@@ -36,13 +36,12 @@ export type WalletController = {
  * secreta e a mesma senha.
  */
 export function useWallet(): WalletController {
-    const [wallet, setWallet] = useState<StoredWallet | null>(null);
-    const [ready, setReady] = useState(false);
-
-    useEffect(() => {
-        setWallet(readWallet());
-        setReady(true);
-    }, []);
+    // Inicialização síncrona (app 100% cliente): evita o "flash" de tela vazia
+    // que o estado ready=false causava a cada remontagem do componente.
+    const [wallet, setWallet] = useState<StoredWallet | null>(() =>
+        readWallet(),
+    );
+    const [ready] = useState(true);
 
     const accounts = wallet?.addresses ?? [];
     const activeIndex = wallet?.activeIndex ?? 0;

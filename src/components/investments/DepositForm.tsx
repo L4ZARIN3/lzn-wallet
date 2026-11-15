@@ -10,10 +10,8 @@ import {
 } from 'viem';
 import {
     useBalance,
-    useChainId,
     usePublicClient,
     useWaitForTransactionReceipt,
-    useWriteContract,
 } from 'wagmi';
 import { CheckCircle2, ExternalLink, Loader2, XCircle } from 'lucide-react';
 
@@ -32,7 +30,6 @@ type DepositFormProps = {
     wallet?: StoredWallet;
     accountIndex?: number;
     userAddress: Address;
-    isExternalWallet?: boolean;
     onSuccess: () => void;
 };
 
@@ -55,7 +52,6 @@ export function DepositForm({
     wallet,
     accountIndex,
     userAddress,
-    isExternalWallet = false,
     onSuccess,
 }: DepositFormProps) {
     const [amountStr, setAmountStr] = useState('');
@@ -66,12 +62,9 @@ export function DepositForm({
     const [txHash, setTxHash] = useState<Hash | undefined>(undefined);
     const [statusError, setStatusError] = useState<string | null>(null);
 
-    const { writeContractAsync } = useWriteContract();
-
-    const wagmiChainId = useChainId();
-    // Carteira local (keystore) opera na cadeia ativa do app (definida via .env);
-    // carteira externa (MetaMask/Rabby) opera na cadeia conectada no conector.
-    const chainId = isExternalWallet ? wagmiChainId : activeChain.id;
+    // Carteira exclusivamente local (keystore): a rede é sempre a cadeia
+    // ativa do app, definida via .env. Sem suporte a carteiras externas.
+    const chainId = activeChain.id;
     const investConfig = INVEST[chainId];
     const isSupported = Boolean(investConfig);
     const currentChain = supportedChains.find((c) => c.id === chainId) || activeChain;
@@ -204,7 +197,7 @@ export function DepositForm({
         }
     };
 
-    // Assina e transmite via Wagmi (carteira conectada) ou keystore local autônomo
+    // Assina e transmite exclusivamente com o keystore local autônomo
     const handleConfirmDeposit = async (password?: string) => {
         if (!investConfig) {
             setStatusError('Investimentos indisponíveis nesta rede.');
@@ -216,37 +209,26 @@ export function DepositForm({
         setIsSigning(true);
 
         try {
-            let hash: Hash;
-            if (isExternalWallet) {
-                // Transação delegada à carteira conectada (MetaMask / Rabby / Frame)
-                hash = await writeContractAsync({
-                    address: investConfig.adapterAddress,
-                    abi: savingsXDaiAdapterAbi,
-                    functionName: 'depositXDAI',
-                    args: [userAddress],
-                    value: parsedWei,
-                    chainId,
-                });
-            } else if (wallet && accountIndex !== undefined && password) {
-                // Transação assinada localmente com a chave privada decriptada em memória
-                const account = await unlockAccount(wallet, password, accountIndex);
-
-                const walletClient = createWalletClient({
-                    account,
-                    chain: currentChain,
-                    transport: http(currentChain.rpcUrls.default.http[0]),
-                });
-
-                hash = await walletClient.writeContract({
-                    address: investConfig.adapterAddress,
-                    abi: savingsXDaiAdapterAbi,
-                    functionName: 'depositXDAI',
-                    args: [userAddress],
-                    value: parsedWei,
-                });
-            } else {
+            if (!wallet || accountIndex === undefined || !password) {
                 throw new Error('Nenhuma carteira disponível para autorizar a operação.');
             }
+
+            // Transação assinada localmente com a chave privada decriptada em memória
+            const account = await unlockAccount(wallet, password, accountIndex);
+
+            const walletClient = createWalletClient({
+                account,
+                chain: currentChain,
+                transport: http(currentChain.rpcUrls.default.http[0]),
+            });
+
+            const hash: Hash = await walletClient.writeContract({
+                address: investConfig.adapterAddress,
+                abi: savingsXDaiAdapterAbi,
+                functionName: 'depositXDAI',
+                args: [userAddress],
+                value: parsedWei,
+            });
 
             setTxHash(hash);
         } catch (err: unknown) {
@@ -422,7 +404,7 @@ export function DepositForm({
                 amountDisplay={`${amountStr} xDAI`}
                 targetContractAddress={investConfig?.adapterAddress ?? ''}
                 targetContractName="SavingsXDaiAdapter (depositXDAI)"
-                requiresPassword={!isExternalWallet && Boolean(wallet)}
+                requiresPassword={Boolean(wallet)}
             />
         </div>
     );

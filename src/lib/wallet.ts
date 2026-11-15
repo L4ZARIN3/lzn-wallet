@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import {
     createPublicClient,
@@ -234,6 +234,7 @@ export function useTokenPrices() {
                 clearTimeout(timeout);
             }
         },
+        placeholderData: keepPreviousData,
         staleTime: 60_000,
         refetchInterval: 60_000,
         refetchIntervalInBackground: true,
@@ -262,6 +263,7 @@ export function useAssetHoldings(address?: Address) {
         chainId: activeChain.id,
         query: {
             enabled: Boolean(address),
+            placeholderData: keepPreviousData,
             refetchInterval: 15_000,
             refetchIntervalInBackground: true,
         },
@@ -277,6 +279,7 @@ export function useAssetHoldings(address?: Address) {
         })),
         query: {
             enabled: Boolean(address),
+            placeholderData: keepPreviousData,
             refetchInterval: 15_000,
             refetchIntervalInBackground: true,
         },
@@ -725,6 +728,7 @@ export function useRecentTransfers(address?: Address) {
         enabled: Boolean(address && client),
         queryFn: () =>
             loadTransfers(client as PublicClient, address as Address, tokens),
+        placeholderData: keepPreviousData,
         staleTime: 30_000,
         refetchInterval: 30_000,
         refetchIntervalInBackground: true,

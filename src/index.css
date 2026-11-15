@@ -20,3 +20,25 @@ body {
     cursor: pointer;
   }
 }
+
+/* Transição suave ao trocar de página (evita percepção de flick) */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-in-page {
+  animation: page-in 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-page {
+    animation: none;
+  }
+}

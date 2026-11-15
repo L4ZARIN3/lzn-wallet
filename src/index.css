@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Roboto Variable", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: "Roboto Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+}
+
+body {
+  color: #202124;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* O Tailwind v4 removeu o cursor de "mãozinha" padrão dos botões */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}

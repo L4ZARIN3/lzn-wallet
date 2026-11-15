@@ -1,0 +1,10 @@
+<!-- xDAI (Gnosis Chain) — marca oficial, geometria idêntica ao original -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 255.8" role="img" aria-label="xDAI">
+    <circle cx="128" cy="127.9" r="127.9" fill="#48a9a6" />
+    <g fill="#ffffff">
+        <rect x="62.3" y="62.3" width="52.6" height="26.3" />
+        <rect x="141.1" y="62.3" width="52.6" height="26.3" />
+        <path d="M193.7 141.1h-26.3v26.3h-26.3v26.3h52.6z" />
+        <path d="M114.9 193.7v-26.3H88.6v-26.3H62.3v52.6z" />
+    </g>
+</svg>

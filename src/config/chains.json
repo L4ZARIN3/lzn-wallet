@@ -1,0 +1,28 @@
+{
+  "gnosis": {
+    "id": 100,
+    "name": "Gnosis",
+    "rpcUrls": ["https://rpc.gnosischain.com"],
+    "blockExplorer": {
+      "name": "Gnosisscan",
+      "url": "https://gnosisscan.io"
+    },
+    "testnet": false
+  },
+  "chiado": {
+    "id": 10200,
+    "name": "Gnosis Chiado",
+    "rpcUrls": ["https://rpc.chiadochain.net"],
+    "blockExplorer": {
+      "name": "Blockscout",
+      "url": "https://gnosis-chiado.blockscout.com"
+    },
+    "testnet": true
+  },
+  "anvil-fork": {
+    "id": 31337,
+    "name": "Gnosis Fork (local)",
+    "rpcUrls": ["http://127.0.0.1:8545"],
+    "testnet": true
+  }
+}

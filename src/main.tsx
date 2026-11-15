@@ -1,0 +1,23 @@
+import "@fontsource-variable/roboto";
+import "@fontsource-variable/roboto-mono";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { WagmiProvider } from "wagmi";
+
+import App from "./App";
+import "./index.css";
+import "@/lib/i18n";
+import { wagmiConfig } from "@/lib/wagmi";
+
+const queryClient = new QueryClient();
+
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+  <React.StrictMode>
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </WagmiProvider>
+  </React.StrictMode>,
+);

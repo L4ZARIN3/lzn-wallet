@@ -1,6 +1,7 @@
 import { Trans, useTranslation } from 'react-i18next';
 
 import { fmt } from '@/utils/format';
+import { openExternalUrl } from '@/lib/external';
 import { cn } from '@/lib/utils';
 import { formatTokenAmount, formatUsd, type PortfolioRow } from '@/lib/wallet';
 
@@ -77,6 +78,7 @@ export function AssetsList({
                                             href={CHIADO_FAUCET_URL}
                                             target="_blank"
                                             rel="noreferrer"
+                                            onClick={(e) => void openExternalUrl(CHIADO_FAUCET_URL, e)}
                                             className="text-[#1a73e8] hover:underline"
                                         />
                                     ),

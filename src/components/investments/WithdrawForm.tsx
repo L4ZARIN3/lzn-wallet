@@ -23,6 +23,7 @@ import {
 } from '@/constants/investments';
 import { ConfirmDialog } from '@/components/investments/ConfirmDialog';
 import { addressHasCode, CONTRACT_CODE_WARNING } from '@/lib/account-safety';
+import { openExternalUrl } from '@/lib/external';
 import { fmt } from '@/utils/format';
 import { unlockAccount, type StoredWallet } from '@/lib/keystore';
 import { activeChain, supportedChains } from '@/lib/wagmi';
@@ -119,10 +120,14 @@ export function WithdrawForm({
     };
 
     const handleAmountChange = (val: string) => {
-        if (/^[0-9]*\.?[0-9]*$/.test(val)) {
-            setAmountStr(val);
+        const normalized = val.replace(',', '.');
+        if (/^[0-9]*\.?[0-9]*$/.test(normalized)) {
+            setAmountStr(normalized);
             setValidationError(null);
             setStatusError(null);
+            if (isConfirmed) {
+                setTxHash(undefined);
+            }
         }
     };
 
@@ -221,18 +226,18 @@ export function WithdrawForm({
                 throw new Error('Nenhuma carteira disponível para autorizar a operação.');
             }
 
+            const account = await unlockAccount(wallet, password, accountIndex);
+            const walletClient = createWalletClient({
+                account,
+                chain: currentChain,
+                transport: http(currentChain.rpcUrls.default.http[0]),
+            });
+
             // Etapa 1 (somente se necessário): approve exato, nunca ilimitado
             if (currentAllowance < parsedShares) {
                 setStep('approving');
 
-                const approveAccount = await unlockAccount(wallet, password, accountIndex);
-                const approveClient = createWalletClient({
-                    account: approveAccount,
-                    chain: currentChain,
-                    transport: http(currentChain.rpcUrls.default.http[0]),
-                });
-
-                const approveHash = await approveClient.writeContract({
+                const approveHash = await walletClient.writeContract({
                     address: investConfig.vaultAddress,
                     abi: sdaiVaultAbi,
                     functionName: 'approve',
@@ -251,14 +256,7 @@ export function WithdrawForm({
             // Etapa 2: resgate das cotas (redeemXDAI)
             setStep('redeeming');
 
-            const redeemAccount = await unlockAccount(wallet, password, accountIndex);
-            const redeemClient = createWalletClient({
-                account: redeemAccount,
-                chain: currentChain,
-                transport: http(currentChain.rpcUrls.default.http[0]),
-            });
-
-            const redeemHash = await redeemClient.writeContract({
+            const redeemHash = await walletClient.writeContract({
                 address: investConfig.adapterAddress,
                 abi: savingsXDaiAdapterAbi,
                 functionName: 'redeemXDAI',
@@ -277,8 +275,7 @@ export function WithdrawForm({
         }
     };
 
-    // Após a confirmação do resgate, limpa o formulário e atualiza a posição.
-    // O clearTimeout evita disparos duplicados (ex.: StrictMode) e re-renderizes.
+    // Após a confirmação do resgate, limpa o valor e atualiza a posição.
     useEffect(() => {
         if (!isConfirmed || step !== 'redeeming' || !txHash) {
             return;
@@ -286,7 +283,6 @@ export function WithdrawForm({
 
         const timer = setTimeout(() => {
             setStep('idle');
-            setTxHash(undefined);
             setAmountStr('');
             onSuccess();
         }, 1000);
@@ -411,6 +407,7 @@ export function WithdrawForm({
                                 href={explorerTxUrl}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={(e) => void openExternalUrl(explorerTxUrl, e)}
                                 className="inline-flex items-center gap-1 font-mono text-[11px] text-blue-600 hover:underline pt-1"
                             >
                                 Ver no explorador: {txHash.slice(0, 10)}...{txHash.slice(-8)}
@@ -435,6 +432,7 @@ export function WithdrawForm({
                                 href={explorerTxUrl}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={(e) => void openExternalUrl(explorerTxUrl, e)}
                                 className="inline-flex items-center gap-1 font-mono text-[11px] text-emerald-700 hover:underline pt-1"
                             >
                                 Ver no explorador
@@ -493,6 +491,7 @@ export function WithdrawForm({
                         : undefined
                 }
                 requiresPassword={Boolean(wallet)}
+                explorerBaseUrl={explorerBaseUrl ?? undefined}
             />
         </div>
     );

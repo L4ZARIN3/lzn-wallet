@@ -2,6 +2,7 @@ import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Address } from 'viem';
 
+import { openExternalUrl } from '@/lib/external';
 import { useCopyToClipboard } from '@/lib/use-copy';
 import { shortenAddress } from '@/lib/wallet';
 
@@ -43,6 +44,7 @@ export function AddressCard({
                         href={explorerUrl}
                         target="_blank"
                         rel="noreferrer"
+                        onClick={(e) => void openExternalUrl(explorerUrl, e)}
                         className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#1a73e8]"
                     >
                         <ExternalLink size={14} />

@@ -168,7 +168,8 @@ export default function CreateWallet() {
 
         try {
             await createWallet(mnemonic, password);
-            navigate("/");
+            setCreating(false);
+            setStep(4);
         } catch {
             setErrors({ keystore: true });
             setCreating(false);

@@ -83,7 +83,7 @@ function usdFormatter(fractionDigits: number): Intl.NumberFormat {
  * de grandeza — assim um valor minúsculo nunca aparece como "$0.00".
  */
 export function formatUsd(value: number): string {
-    if (value === 0) {
+    if (!Number.isFinite(value) || value === 0) {
         return usdFormatter(2).format(0);
     }
 
@@ -94,7 +94,9 @@ export function formatUsd(value: number): string {
     }
 
     if (abs < SMALLEST_USD) {
-        return `< ${usdFormatter(MAX_DECIMALS).format(SMALLEST_USD)}`;
+        return value < 0
+            ? `> ${usdFormatter(MAX_DECIMALS).format(-SMALLEST_USD)}`
+            : `< ${usdFormatter(MAX_DECIMALS).format(SMALLEST_USD)}`;
     }
 
     const decimals = Math.min(
@@ -119,6 +121,10 @@ const integerFormatter = new Intl.NumberFormat('en-US');
  * e assim 1 wei deixa de ser exibido como "0".
  */
 export function formatTokenAmount(value: bigint, decimals: number): string {
+    if (value < 0n) {
+        return `-${formatTokenAmount(-value, decimals)}`;
+    }
+
     const [whole, fraction] = formatUnits(value, decimals).split('.');
 
     return fraction
@@ -395,8 +401,9 @@ const NATIVE_TRANSFER_GAS = 21_000n;
  */
 export function useNativeTransferFee(): bigint | undefined {
     const { data } = useEstimateFeesPerGas({ chainId: activeChain.id });
+    const gasPrice = data?.maxFeePerGas ?? data?.gasPrice;
 
-    return data ? data.maxFeePerGas * NATIVE_TRANSFER_GAS : undefined;
+    return gasPrice !== undefined ? gasPrice * NATIVE_TRANSFER_GAS : undefined;
 }
 
 export type PortfolioRow = AssetHolding & {
@@ -704,10 +711,15 @@ async function loadTransfers(
     address: Address,
     tokens: TokenInfo[],
 ): Promise<WalletTransfer[]> {
-    const [erc20, native] = await Promise.all([
+    const [erc20Result, nativeResult] = await Promise.allSettled([
         loadErc20Transfers(client, address, tokens),
         loadNativeTransfers(address),
     ]);
+
+    const erc20 =
+        erc20Result.status === 'fulfilled' ? erc20Result.value : [];
+    const native =
+        nativeResult.status === 'fulfilled' ? nativeResult.value : [];
 
     return [...erc20, ...native]
         .sort((a, b) => b.timestamp - a.timestamp)

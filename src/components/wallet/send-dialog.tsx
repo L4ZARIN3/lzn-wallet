@@ -16,6 +16,7 @@ import {
 } from 'viem';
 
 import { Modal } from '@/components/ui/modal';
+import { openExternalUrl } from '@/lib/external';
 import { cn } from '@/lib/utils';
 import {
     explorerTransactionUrl,
@@ -136,6 +137,7 @@ export function SendDialog({
     const [hash, setHash] = useState<Hash | null>(null);
     const [busy, setBusy] = useState(false);
     const [failure, setFailure] = useState<SendFailure | null>(null);
+    const [customError, setCustomError] = useState<string | null>(null);
 
     /**
      * Máximo transferível: o saldo menos a taxa de rede. `null` quando a taxa
@@ -158,7 +160,9 @@ export function SendDialog({
     /** Destinatário e valor do formulário, já normalizados. */
     const recipient = normalizeAddress(to);
     const value = parseAmount();
-    const amountTooHigh = value !== null && value > balance;
+    const amountTooHigh =
+        value !== null &&
+        (fee !== undefined ? value + fee > balance : value > balance);
 
     /** Erros derivados do que já foi digitado, para feedback imediato. */
     const addressInvalid = to.trim().length > 0 && recipient === null;
@@ -179,6 +183,7 @@ export function SendDialog({
         setHash(null);
         setBusy(false);
         setFailure(null);
+        setCustomError(null);
         onClose();
     };
 
@@ -196,7 +201,7 @@ export function SendDialog({
     const review = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!recipient || value === null || value > balance) {
+        if (!recipient || value === null || amountTooHigh) {
             return;
         }
 
@@ -213,15 +218,19 @@ export function SendDialog({
         }
 
         setFailure(null);
+        setCustomError(null);
         setBusy(true);
 
         try {
             setHash(await onSend({ to: recipient, amount: value, password }));
         } catch (cause) {
-            setFailure(
-                cause instanceof Error && cause.message === 'invalid-password'
-                    ? 'password'
-                    : 'generic',
+            const isInvalidPassword =
+                cause instanceof Error && cause.message === 'invalid-password';
+            setFailure(isInvalidPassword ? 'password' : 'generic');
+            setCustomError(
+                !isInvalidPassword && cause instanceof Error
+                    ? cause.message
+                    : null,
             );
         } finally {
             setBusy(false);
@@ -254,6 +263,7 @@ export function SendDialog({
                             href={explorerUrl}
                             target="_blank"
                             rel="noreferrer"
+                            onClick={(e) => void openExternalUrl(explorerUrl, e)}
                             className="mt-4 inline-flex items-center gap-2 text-sm text-[#1a73e8] hover:underline"
                         >
                             <ExternalLink size={14} />
@@ -363,7 +373,7 @@ export function SendDialog({
 
                 {failure && (
                     <p role="alert" className="mt-3 text-xs text-red-600">
-                        {t(FAILURE_KEYS[failure])}
+                        {customError || t(FAILURE_KEYS[failure])}
                     </p>
                 )}
 

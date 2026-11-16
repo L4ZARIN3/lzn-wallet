@@ -98,6 +98,8 @@ export function AddAccountForm({
                 setErrorMessage(t('addAccount.addressNotDerived'));
             } else if (err.message === 'invalid-password') {
                 setErrorMessage(t('addAccount.incorrect'));
+            } else if (err.message === 'max-accounts-reached') {
+                setErrorMessage(t('addAccount.addressNotDerived'));
             } else {
                 setErrorMessage(
                     err.message || t('create.messages.keystore'),

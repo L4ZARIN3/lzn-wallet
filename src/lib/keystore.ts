@@ -304,6 +304,10 @@ export async function addWalletAccount(
     stored: StoredWallet,
     password: string,
 ): Promise<StoredWallet> {
+    if (stored.addresses.length >= MAX_WALLET_ACCOUNTS) {
+        throw new Error('max-accounts-reached');
+    }
+
     const words = await unlockWallet(stored, password);
     const accountIndex = stored.addresses.length;
 
@@ -364,7 +368,13 @@ export async function addWalletAccountByAddress(
     inputAddress: string,
     maxScan = MAX_WALLET_ACCOUNTS,
 ): Promise<{ wallet: StoredWallet; index: number; address: Address }> {
-    const normalized = inputAddress.trim().toLowerCase();
+    const trimmed = inputAddress.trim();
+    const normalized = (
+        trimmed.startsWith('0x') || trimmed.startsWith('0X')
+            ? trimmed
+            : `0x${trimmed}`
+    ).toLowerCase();
+
     if (!isAddress(normalized)) {
         throw new Error('invalid-address-format');
     }

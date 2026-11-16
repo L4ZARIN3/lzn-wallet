@@ -1,6 +1,7 @@
 import { ArrowDownLeft, ArrowUpRight, ExternalLink, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { openExternalUrl } from '@/lib/external';
 import { formatUsd } from '@/lib/wallet';
 
 type PortfolioSummaryProps = {
@@ -86,6 +87,7 @@ export function PortfolioSummary({
                         href={explorerUrl}
                         target="_blank"
                         rel="noreferrer"
+                        onClick={(e) => void openExternalUrl(explorerUrl, e)}
                         className="flex items-center gap-2 rounded-full border border-gray-200 px-5 py-3 text-sm font-medium transition hover:bg-gray-50"
                     >
                         <ExternalLink size={17} />

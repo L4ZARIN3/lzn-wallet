@@ -36,12 +36,13 @@ import {
     addressFromMnemonic,
     createWallet,
 } from '@/lib/keystore';
+import { validateMnemonic } from '@/lib/bip39';
 import { cn } from '@/lib/utils';
 import { activeChain } from '@/lib/wagmi';
 import { nativeToken, shortenAddress } from '@/lib/wallet';
 
 const MIN_PASSWORD_LENGTH = 8;
-const WORD_COUNT = 12;
+const VALID_WORD_COUNTS = [12, 15, 18, 21, 24];
 
 type ErrorField =
     | 'phrase'
@@ -59,7 +60,7 @@ function parseMnemonic(raw: string): string[] | null {
         .split(/\s+/)
         .filter(Boolean);
 
-    if (words.length !== WORD_COUNT) {
+    if (!VALID_WORD_COUNTS.includes(words.length)) {
         return null;
     }
 
@@ -98,13 +99,13 @@ export default function RecoverWallet() {
     }, []);
 
     /* ── Step 1: validar a frase ── */
-    const goToPasswordStep = (event: FormEvent) => {
+    const goToPasswordStep = async (event: FormEvent) => {
         event.preventDefault();
 
         const words = parseMnemonic(phraseInput);
         const nextErrors: Errors = {};
 
-        if (!words) {
+        if (!words || !(await validateMnemonic(words))) {
             nextErrors.phrase = true;
         }
 
@@ -116,13 +117,13 @@ export default function RecoverWallet() {
     };
 
     /* ── Step 2: validar a senha e avançar para descoberta ── */
-    const goToDiscoveryStep = (event: FormEvent) => {
+    const goToDiscoveryStep = async (event: FormEvent) => {
         event.preventDefault();
 
         const words = parseMnemonic(phraseInput);
         const nextErrors: Errors = {};
 
-        if (!words) {
+        if (!words || !(await validateMnemonic(words))) {
             nextErrors.phrase = true;
         }
 

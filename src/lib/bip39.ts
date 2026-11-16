@@ -2056,7 +2056,13 @@ zone
 zoo
 `
     .trim()
-    .split('\n');
+    .split(/\r?\n/);
+
+export { WORDLIST };
+
+const WORD_MAP = new Map<string, number>(
+    WORDLIST.map((word, index) => [word, index]),
+);
 
 /** 128 bits of entropy -> 12 words once the 4 checksum bits are appended. */
 const ENTROPY_BYTES = 16;
@@ -2079,6 +2085,56 @@ async function sha256(
     data: Uint8Array<ArrayBuffer>,
 ): Promise<Uint8Array<ArrayBuffer>> {
     return new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+}
+
+/**
+ * Validates whether a recovery phrase is compliant with BIP-39:
+ * 1. Word count is 12, 15, 18, 21, or 24 words.
+ * 2. All words exist in the BIP-39 English wordlist.
+ * 3. The checksum matches SHA-256(entropy).
+ */
+export async function validateMnemonic(
+    phraseOrWords: string | string[],
+): Promise<boolean> {
+    if (typeof crypto === 'undefined' || !crypto.subtle) {
+        return false;
+    }
+
+    const words = Array.isArray(phraseOrWords)
+        ? phraseOrWords.map((w) => w.trim().toLowerCase()).filter(Boolean)
+        : phraseOrWords.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+    if (![12, 15, 18, 21, 24].includes(words.length)) {
+        return false;
+    }
+
+    const totalBits = words.length * BITS_PER_WORD;
+    const checksumBitsCount = totalBits / 33;
+    const entropyBitsCount = totalBits - checksumBitsCount;
+    const entropyByteCount = entropyBitsCount / 8;
+
+    let bits = '';
+    for (const word of words) {
+        const index = WORD_MAP.get(word);
+        if (index === undefined) {
+            return false;
+        }
+        bits += index.toString(2).padStart(BITS_PER_WORD, '0');
+    }
+
+    const entropyBytes = new Uint8Array(entropyByteCount);
+    for (let i = 0; i < entropyByteCount; i++) {
+        entropyBytes[i] = Number.parseInt(bits.slice(i * 8, (i + 1) * 8), 2);
+    }
+
+    const hash = await sha256(entropyBytes);
+    const expectedChecksum = bytesToBits(hash).slice(0, checksumBitsCount);
+    const actualChecksum = bits.slice(
+        entropyByteCount * 8,
+        entropyByteCount * 8 + checksumBitsCount,
+    );
+
+    return expectedChecksum === actualChecksum;
 }
 
 /**

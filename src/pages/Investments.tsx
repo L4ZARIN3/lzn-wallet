@@ -15,6 +15,8 @@ import { WithdrawForm } from '@/components/investments/WithdrawForm';
 import { AccountsDialog } from '@/components/wallet/accounts-dialog';
 import { WalletHeader } from '@/components/wallet/wallet-header';
 import { addressHasCode, CONTRACT_CODE_WARNING } from '@/lib/account-safety';
+import { discoverAccounts } from '@/lib/discovery';
+import { unlockWallet } from '@/lib/keystore';
 import { useWallet } from '@/lib/use-wallet';
 import { activeChain, supportedChains } from '@/lib/wagmi';
 
@@ -27,6 +29,7 @@ export default function Investments() {
         activeAddress,
         switchAccount,
         addAccount,
+        addAccountByIndex,
         addAccountByAddress,
         importDiscovered,
     } = useWallet();
@@ -272,8 +275,44 @@ export default function Investments() {
                         setAccountsOpen(false);
                     }}
                     onAdd={addAccount}
-                    onAddManual={addAccountByAddress}
-                    onScan={(password) => importDiscovered(password, 20)}
+                    onAddManual={async (password, target) => {
+                        const trimmed = target.trim();
+                        const cleaned = trimmed.replace(
+                            /^(account|conta|#)\s*/i,
+                            '',
+                        );
+                        if (/^\d+$/.test(cleaned)) {
+                            const num = parseInt(cleaned, 10);
+                            let index = 0;
+                            if (num === 0) {
+                                index = 0;
+                            } else if (num >= 1 && num <= 100) {
+                                index = num - 1;
+                            } else {
+                                throw new Error('invalid-index');
+                            }
+                            return addAccountByIndex(password, index);
+                        }
+                        return addAccountByAddress(password, trimmed);
+                    }}
+                    onScan={async (password) => {
+                        if (!wallet) return 0;
+                        const words = await unlockWallet(wallet, password);
+                        const discovered = await discoverAccounts({
+                            words,
+                            client: safetyClient ?? undefined,
+                            minCount: accounts.length,
+                        });
+                        if (discovered.length > accounts.length) {
+                            const prevCount = accounts.length;
+                            const newTotal = await importDiscovered(
+                                password,
+                                discovered.length,
+                            );
+                            return Math.max(0, newTotal - prevCount);
+                        }
+                        return 0;
+                    }}
                 />
             )}
         </div>

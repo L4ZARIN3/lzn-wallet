@@ -60,7 +60,7 @@ export function WalletHeader({
                         aria-current={location === '/' ? 'page' : undefined}
                         className={navLinkClass(location === '/')}
                     >
-                        Carteira
+                        {t('brand.name')}
                     </Link>
                     {/* Sem carteira local habilitada não existe aba de investimentos */}
                     {address && (

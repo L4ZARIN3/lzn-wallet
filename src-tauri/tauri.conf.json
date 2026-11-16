@@ -18,7 +18,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://rpc.gnosischain.com https://rpc.chiadochain.net http://127.0.0.1:8545 https://api.coingecko.com https://gnosisscan.io https://gnosis-chiado.blockscout.com https://faucet.chiadochain.net"
     }
   },
   "bundle": {

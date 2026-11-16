@@ -267,7 +267,13 @@ export function findDerivedAccountIndex(
     targetAddress: string,
     maxScan = MAX_VERIFY_SCAN,
 ): number | null {
-    const normalized = targetAddress.trim().toLowerCase();
+    const trimmed = targetAddress.trim();
+    const normalized = (
+        trimmed.startsWith('0x') || trimmed.startsWith('0X')
+            ? trimmed
+            : `0x${trimmed}`
+    ).toLowerCase();
+
     if (!isAddress(normalized)) {
         return null;
     }

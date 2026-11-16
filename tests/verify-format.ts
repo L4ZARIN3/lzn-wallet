@@ -47,7 +47,31 @@ function runFormatVerification() {
         'preço da cota com 6 casas',
     );
 
-    console.log('✓ Todos os 8 casos de arredondamento/formação passaram');
+    // Casos de borda: casas >= decimais (ex.: USDC com 6 decimais exibido com 8 casas, ou 2 decimais com 4 casas)
+    assert.strictEqual(
+        fmt(1000000n, 8, 6),
+        '1.00000000',
+        'casas > decimais não pode lançar RangeError e deve preencher com zeros',
+    );
+    assert.strictEqual(
+        fmt(123n, 4, 2),
+        '1.2300',
+        'token com 2 decimais exibido com 4 casas',
+    );
+    assert.strictEqual(
+        fmt(100n, 0, 2),
+        '1',
+        'casas = 0 deve exibir apenas parte inteira',
+    );
+
+    // Valores negativos
+    assert.strictEqual(
+        fmt(-50000000000000000000n, 4, 18),
+        '-50.0000',
+        'valores negativos devem preservar o sinal',
+    );
+
+    console.log('✓ Todos os casos de arredondamento/formação e bordas passaram');
     console.log('ALL FORMAT VERIFICATION TESTS PASSED SUCCESSFULLY!');
 }
 

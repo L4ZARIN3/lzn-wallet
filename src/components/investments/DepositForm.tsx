@@ -22,6 +22,7 @@ import {
 } from '@/constants/investments';
 import { ConfirmDialog } from '@/components/investments/ConfirmDialog';
 import { addressHasCode, CONTRACT_CODE_WARNING } from '@/lib/account-safety';
+import { openExternalUrl } from '@/lib/external';
 import { fmt } from '@/utils/format';
 import { unlockAccount, type StoredWallet } from '@/lib/keystore';
 import { activeChain, supportedChains } from '@/lib/wagmi';
@@ -95,13 +96,14 @@ export function DepositForm({
         chainId,
     });
 
-    // Ao confirmar com sucesso, avisa o componente pai
+    // Ao confirmar com sucesso, avisa o componente pai e reseta valor
     useEffect(() => {
         if (!isConfirmed || !txHash) {
             return;
         }
 
         const timer = setTimeout(() => {
+            setAmountStr('');
             onSuccess();
             void refetchBalance();
         }, 1000);
@@ -128,10 +130,14 @@ export function DepositForm({
     };
 
     const handleAmountChange = (val: string) => {
-        if (/^[0-9]*\.?[0-9]*$/.test(val)) {
-            setAmountStr(val);
+        const normalized = val.replace(',', '.');
+        if (/^[0-9]*\.?[0-9]*$/.test(normalized)) {
+            setAmountStr(normalized);
             setValidationError(null);
             setStatusError(null);
+            if (isConfirmed) {
+                setTxHash(undefined);
+            }
         }
     };
 
@@ -338,6 +344,7 @@ export function DepositForm({
                                 href={explorerTxUrl}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={(e) => void openExternalUrl(explorerTxUrl, e)}
                                 className="inline-flex items-center gap-1 font-mono text-[11px] text-blue-600 hover:underline pt-1"
                             >
                                 Ver no explorador: {txHash.slice(0, 10)}...{txHash.slice(-8)}
@@ -358,6 +365,7 @@ export function DepositForm({
                                 href={explorerTxUrl}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={(e) => void openExternalUrl(explorerTxUrl, e)}
                                 className="inline-flex items-center gap-1 font-mono text-[11px] text-emerald-700 hover:underline pt-1"
                             >
                                 Ver no explorador
@@ -405,6 +413,7 @@ export function DepositForm({
                 targetContractAddress={investConfig?.adapterAddress ?? ''}
                 targetContractName="SavingsXDaiAdapter (depositXDAI)"
                 requiresPassword={Boolean(wallet)}
+                explorerBaseUrl={explorerBaseUrl ?? undefined}
             />
         </div>
     );

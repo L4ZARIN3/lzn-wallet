@@ -1,6 +1,7 @@
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { openExternalUrl } from '@/lib/external';
 import {
     explorerTransactionUrl,
     formatTimestamp,
@@ -52,13 +53,13 @@ export function ActivityList({
 
             {transfers.length > 0 && (
                 <div className="divide-y divide-gray-100">
-                    {transfers.map((tx) => {
+                    {transfers.map((tx, index) => {
                         const txUrl = explorerTransactionUrl(tx.hash);
                         const received = tx.direction === 'received';
 
                         return (
                             <div
-                                key={`${tx.hash}-${tx.counterparty}`}
+                                key={`${tx.hash}-${tx.counterparty}-${index}`}
                                 className="flex items-center justify-between py-5"
                             >
                                 <div className="flex items-center gap-4">
@@ -104,6 +105,7 @@ export function ActivityList({
                                                         href={txUrl}
                                                         target="_blank"
                                                         rel="noreferrer"
+                                                        onClick={(e) => void openExternalUrl(txUrl, e)}
                                                         className="text-[#1a73e8] hover:underline"
                                                     >
                                                         {t('activity.view')}

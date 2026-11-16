@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { AlertTriangle, ExternalLink, KeyRound, Loader2, ShieldCheck } from 'lucide-react';
 import { INVESTMENT_CONFIG } from '@/constants/investments';
 import { Modal } from '@/components/ui/modal';
+import { openExternalUrl } from '@/lib/external';
 
 type ConfirmDialogProps = {
     open: boolean;
@@ -15,6 +16,7 @@ type ConfirmDialogProps = {
     isSimulating?: boolean;
     warningMessage?: string;
     requiresPassword?: boolean;
+    explorerBaseUrl?: string;
 };
 
 export function ConfirmDialog({
@@ -29,12 +31,14 @@ export function ConfirmDialog({
     isSimulating = false,
     warningMessage,
     requiresPassword = false,
+    explorerBaseUrl,
 }: ConfirmDialogProps) {
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const explorerUrl = `${INVESTMENT_CONFIG.gnosisscanUrl}/address/${targetContractAddress}`;
+    const base = explorerBaseUrl || INVESTMENT_CONFIG.gnosisscanUrl;
+    const explorerUrl = `${base}/address/${targetContractAddress}`;
 
     const handleClose = () => {
         setPassword('');
@@ -94,8 +98,9 @@ export function ConfirmDialog({
                             href={explorerUrl}
                             target="_blank"
                             rel="noreferrer"
+                            onClick={(e) => void openExternalUrl(explorerUrl, e)}
                             className="ml-2 inline-flex items-center text-blue-600 hover:text-blue-700 shrink-0"
-                            title="Ver no Gnosisscan"
+                            title="Ver no explorador"
                         >
                             <ExternalLink size={14} />
                         </a>

@@ -23,6 +23,7 @@ globalThis.document = {
 
 const jiti = createJiti(import.meta.url, {
   alias: {
+    '@/assets/xdai.svg': path.resolve('./tests/mock-asset.js'),
     '@': path.resolve('./src'),
   },
   fsCache: false,
@@ -51,3 +52,4 @@ await jiti.import('./tests/verify-discovery.ts');
 await jiti.import('./tests/verify-locales.ts');
 await jiti.import('./tests/verify-investments.ts');
 await jiti.import('./tests/verify-format.ts');
+await jiti.import('./tests/verify-safety-and-crypto.ts');
